@@ -3,6 +3,7 @@ package com.onurege.demo.Service;
 import com.onurege.demo.Repository.RecommendationRepository;
 import com.onurege.demo.data.movie.model.MovieDto;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Objects;
@@ -21,6 +22,11 @@ public class RecommendationService {
 
     public List<MovieDto> getUserBasedRecommendations(String userId){
         List<String> imdbs = repo.fetchUserBasedRecommendations(userId);
+
+        if(imdbs.isEmpty()){
+            return tmdbService.getPopularMovies();
+
+        }
 
         return  imdbs.stream()
                 .map(tmdbService::getMovieByImdbId)
@@ -43,5 +49,10 @@ public class RecommendationService {
                 .map(tmdbService::getMovieByImdbId)
                 .filter(Objects::nonNull)
                 .toList();
+    }
+
+    @Async
+    public void updateUserBasedRecommendations(String userId) {
+        repo.recalculateUserBasedRecommendations(userId);
     }
 }
