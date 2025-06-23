@@ -20,9 +20,33 @@ public interface RecommendationRepository extends Neo4jRepository<MovieNode, Str
     List<String> fetchUserBasedRecommendations(@Param("userId") String userId);
 
     @Query("""
-            MATCH (:Movie {id: $imdbId})-[r:RECOMMENDS|RELATED_TO]->(m:Movie)
-            WITH r,m
-            RETURN m.id AS imdbId LIMIT 25
+            MATCH (m:Movie {id: $imdbId})
+        
+            // Weighted matches
+            OPTIONAL MATCH (m)-[:CO_ACTED_WITH]-(a:Movie)
+            OPTIONAL MATCH (m)-[:CO_DIRECTED]-(d:Movie)
+            OPTIONAL MATCH (m)-[:RECOMMENDS]->(rec:Movie)
+            OPTIONAL MATCH (m)-[:RELATED_TO]-(rel:Movie)
+        
+            WITH
+                [x IN collect(a) WHERE x IS NOT NULL] AS coActed,
+                [x IN collect(d) WHERE x IS NOT NULL] AS coDirected,
+                [x IN collect(rec) WHERE x IS NOT NULL] AS recommended,
+                [x IN collect(rel) WHERE x IS NOT NULL] AS related
+        
+            // Merge and score by weights
+            WITH
+                coActed + coActed + coActed +
+                coDirected + coDirected + coDirected +
+                recommended +
+                related                          AS allRelated
+        
+            UNWIND allRelated AS candidate
+            WITH candidate, count(*) AS score
+            WHERE candidate IS NOT NULL AND candidate.id <> $imdbId
+            RETURN candidate.id 
+            ORDER BY score DESC
+            LIMIT 25
         """)
     List<String> fetchMovieBasedRecommendations(@Param("imdbId") String imdbId);
 
