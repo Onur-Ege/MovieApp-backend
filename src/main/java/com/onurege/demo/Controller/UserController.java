@@ -6,7 +6,6 @@ import com.onurege.demo.data.FavoriteResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-
 @RestController
 @RequestMapping("/api/rating")
 public class UserController {
